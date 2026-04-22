@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Demo verificador V6</title>
+<style>
+body{font-family:Arial,Helvetica,sans-serif;background:#f4f7fb;margin:0;padding:24px;color:#1d2733}
+.card{max-width:760px;margin:auto;background:#fff;border:1px solid #d9e1ea;border-radius:16px;padding:22px}
+input{padding:10px;border:1px solid #d9e1ea;border-radius:10px;width:260px}
+button{padding:10px 14px;border:0;border-radius:10px;background:#173A5E;color:#fff;font-weight:700}
+</style>
+</head>
+<body>
+<div class="card">
+  <h2>Demo verificador local V6</h2>
+  <p>Prueba con <b>SCI-000001</b>, <b>ASE-000001</b> o <b>IMP-000001</b>.</p>
+  <input id="folio" placeholder="Ej: SCI-000001">
+  <button onclick="buscar()">Buscar</button>
+  <div id="resultado" style="margin-top:18px"></div>
+</div>
+<script>
+const data = {
+  'ASE-000001': {empresa:'ASEFORTMEC SPA', trabajador:'Bernardo Ariel Ojeda Molina', periodo:'2026-04', dias:30, liquido:1201004, estado:'Emitida'},
+  'IMP-000001': {empresa:'IMPULSOWORK TRAINING', trabajador:'Pablo Cristobal Tamayo Alvarez', periodo:'2026-04', dias:30, liquido:857500, estado:'Emitida'},
+  'SCI-000001': {empresa:'SERVICIOS DE CERTIFICACION INTEGRAL SPA', trabajador:'Dayanna Estefania Muñoz Paredes', periodo:'2026-04', dias:14, liquido:125882, estado:'Borrador'}
+};
+function buscar(){
+  const folio = document.getElementById('folio').value.trim().toUpperCase();
+  const r = data[folio];
+  const el = document.getElementById('resultado');
+  if(!r){ el.innerHTML = '<b>No encontrado.</b>'; return; }
+  el.innerHTML =
+    `<b>Empresa:</b> ${r.empresa}<br>` +
+    `<b>Trabajador:</b> ${r.trabajador}<br>` +
+    `<b>Período:</b> ${r.periodo}<br>` +
+    `<b>Días pagados:</b> ${r.dias}<br>` +
+    `<b>Líquido:</b> $${Number(r.liquido).toLocaleString('es-CL')}<br>` +
+    `<b>Estado:</b> ${r.estado}`;
+}
+</script>
+</body>
+</html>

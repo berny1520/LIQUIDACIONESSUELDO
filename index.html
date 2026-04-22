@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sistema de Liquidaciones V6 - Full automático</title>
+<style>
+:root{
+  --azul:#173A5E; --azul2:#2F5F86; --celeste:#DCECF8; --gris:#F4F7FB; --borde:#D8E2EC; --texto:#1D2733;
+  --verde:#E0F1E5; --amarillo:#FFF4D4; --rojo:#FDE1E1;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#eef3f8;color:var(--texto)}
+header{background:linear-gradient(135deg,var(--azul),#24547b);color:#fff;padding:18px 24px}
+header h1{margin:0;font-size:24px}
+header p{margin:6px 0 0 0;font-size:13px;opacity:.92}
+main{padding:18px;display:grid;grid-template-columns:430px 1fr;gap:18px}
+.card{background:#fff;border:1px solid var(--borde);border-radius:16px;box-shadow:0 8px 28px rgba(23,58,94,.08)}
+.panel{padding:16px}
+.badge{display:inline-block;padding:4px 10px;background:#edf4fb;color:var(--azul);border-radius:999px;font-size:12px;font-weight:700}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{display:block;font-size:12px;font-weight:700;color:#4b6078;margin:10px 0 6px}
+input,select,textarea{width:100%;padding:10px 11px;border:1px solid var(--borde);border-radius:10px;background:#fff;font:inherit}
+textarea{min-height:72px;resize:vertical}
+input[readonly]{background:#f8fbff}
+small.help{display:block;color:#6c7c90;font-size:12px;margin-top:8px;line-height:1.4}
+.btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+button{border:0;border-radius:10px;padding:11px 14px;font-weight:700;cursor:pointer;font:inherit}
+.primary{background:var(--azul);color:#fff}
+.light{background:#edf4fb;color:var(--azul)}
+.success{background:#dcefdc;color:#234d23}
+.tabs{display:flex;gap:8px;padding:12px 16px 0;flex-wrap:wrap}
+.tabbtn{background:#edf4fb;color:var(--azul)}
+.tabbtn.active{background:var(--azul);color:#fff}
+.view{display:none;padding:16px}
+.view.active{display:block}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.kpi{background:#f8fbff;border:1px solid var(--borde);border-radius:14px;padding:12px;text-align:center}
+.kpi b{display:block;font-size:12px;color:#5a6c7f;margin-bottom:6px}
+.kpi span{font-size:24px;font-weight:700;color:var(--azul)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{border:1px solid #dfe7ef;padding:8px}
+th{background:var(--celeste);text-align:left}
+.right{text-align:right}.center{text-align:center}
+.sheet{background:#fff;border:1px solid #d3dde8;border-radius:14px;padding:18px}
+.liq-header{display:grid;grid-template-columns:1fr 220px;gap:18px;align-items:start}
+.brand img{max-width:210px;max-height:72px;object-fit:contain}
+.title{font-size:28px;font-weight:800;color:#334;line-height:1.1}
+.subtitle{color:#5f7188;margin-top:4px}
+.info{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.infobox{border-left:4px solid #bfd7eb;background:#fbfdff;padding:10px 14px;border-radius:12px;min-height:136px}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0}
+.metric{border:1px solid var(--borde);border-radius:12px;padding:10px;text-align:center;background:#fbfdff}
+.metric strong{display:block;font-size:12px;color:#52657a;margin-bottom:6px}
+.metric div{font-size:16px;font-weight:700;color:var(--azul)}
+.twocol{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px}
+.total-row td{font-weight:700;background:#f0f6fc}
+.big-neto{margin-top:16px;background:var(--celeste);border-radius:12px;padding:12px 18px;font-size:20px;font-weight:800;text-align:right;color:#153a5b}
+.footer{display:grid;grid-template-columns:1fr 1fr 112px;gap:18px;align-items:end;margin-top:24px}
+.note{font-size:12px;line-height:1.5;color:#4f5f70}
+.signature{text-align:center}
+.signature img{display:block;margin:0 auto 4px;max-width:290px;max-height:86px;object-fit:contain;filter:contrast(1.1)}
+.line{border-top:1px solid #111;width:250px;margin:2px auto 6px}
+.qrbox{width:104px;height:104px;border:1px solid var(--borde);display:flex;align-items:center;justify-content:center;border-radius:10px;background:#fff;overflow:hidden}
+.qrbox img{width:100%;height:100%;object-fit:contain}
+.hist-actions{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap}
+.bar{height:14px;background:#eaf1f8;border-radius:999px;overflow:hidden}.bar>span{display:block;height:100%;background:linear-gradient(90deg,#1f4e79,#4f8bc6)}
+.status-ok{background:#dff3df;font-weight:700}.status-alerta{background:#fff3cd;font-weight:700}.status-critico{background:#f8d7da;font-weight:700}
+.inline-help{font-size:12px;color:#6b7a8e;background:#f8fbff;border:1px dashed var(--borde);padding:8px 10px;border-radius:10px;margin-top:10px}
+.print-only{display:none}
+@media (max-width: 1100px){main{grid-template-columns:1fr}.kpis,.metrics{grid-template-columns:repeat(2,1fr)}.info,.twocol,.footer{grid-template-columns:1fr}}
+@media print{
+  body{background:#fff} header,.card:first-child,.tabs,.hist-actions,.no-print{display:none !important}
+  main{display:block;padding:0}.card{box-shadow:none;border:0}.view{display:block;padding:0}.view:not(#liquidacionView){display:none !important}
+  .sheet{border:0;padding:0}.print-only{display:block}
+}
+</style>
+</head>
+<body>
+<header class="no-print">
+  <h1>Sistema de Liquidaciones V6 - Full automático</h1>
+  <p>Calcula sueldo proporcional por fecha de ingreso, gratificación art. 50, historial, tablero gerencial y base para verificación web.</p>
+</header>
+
+<main>
+  <section class="card no-print">
+    <div class="panel">
+      <div class="badge">Ingreso rápido y control</div>
+
+      <div class="grid">
+        <div><label>Empresa</label><select id="empresa"></select></div>
+        <div><label>Trabajador</label><select id="trabajador"></select></div>
+
+        <div><label>Período</label><input id="periodo" type="month"></div>
+        <div><label>Fecha pago</label><input id="fechaPago" type="date"></div>
+
+        <div><label>Cargo</label><input id="cargo" readonly></div>
+        <div><label>Tipo contrato</label><input id="tipoContrato" readonly></div>
+
+        <div><label>Fecha ingreso</label><input id="fechaIngreso" type="date" readonly></div>
+        <div><label>Sueldo base contractual</label><input id="sueldoBase" type="number" value="260000"></div>
+
+        <div><label>Días pagados automáticos</label><input id="diasAuto" readonly></div>
+        <div><label>Días pagados manual (opcional)</label><input id="diasManual" type="number" min="0" max="30" placeholder="Si lo dejas vacío usa automático"></div>
+
+        <div><label>Bono imponible</label><input id="bonoImp" type="number" value="0"></div>
+        <div><label>Comisiones</label><input id="comisiones" type="number" value="0"></div>
+
+        <div><label>Horas extra 50%</label><input id="he50" type="number" value="0"></div>
+        <div><label>Horas extra 100%</label><input id="he100" type="number" value="0"></div>
+
+        <div><label>Movilización</label><input id="movilizacion" type="number" value="0"></div>
+        <div><label>Colación</label><input id="colacion" type="number" value="0"></div>
+
+        <div><label>Bono no imponible</label><input id="bonoNoImp" type="number" value="0"></div>
+        <div><label>Anticipos</label><input id="anticipos" type="number" value="0"></div>
+
+        <div><label>Otros descuentos</label><input id="otrosDesc" type="number" value="0"></div>
+        <div><label>Gratificación manual (opcional)</label><input id="gratManual" type="number" value="0"></div>
+      </div>
+
+      <label>Observaciones</label>
+      <textarea id="obs">Sistema V6 con cálculo proporcional automático por fecha de ingreso.</textarea>
+
+      <div class="inline-help">
+        <b>Regla V6:</b> si el trabajador ingresa dentro del mes, el sistema paga desde ese día hasta el 30.
+        Ejemplo: ingreso el 17 → paga <b>14/30</b>. El sueldo base y la gratificación se calculan de forma proporcional.
+      </div>
+
+      <div class="btns">
+        <button class="primary" onclick="generarLiquidacion()">Generar</button>
+        <button class="light" onclick="guardarLocal()">Guardar historial</button>
+        <button class="light" onclick="window.print()">Imprimir / PDF</button>
+        <button class="success" onclick="exportarJSON()">Exportar JSON</button>
+      </div>
+      <small class="help">La planilla Excel incluida trae la misma lógica en la hoja Ingreso_Mensual. Este HTML funciona localmente y guarda historial en tu navegador.</small>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="tabs no-print">
+      <button class="tabbtn active" data-view="liquidacionView">Liquidación</button>
+      <button class="tabbtn" data-view="dashboardView">Dashboard</button>
+      <button class="tabbtn" data-view="historialView">Historial</button>
+    </div>
+
+    <div id="liquidacionView" class="view active">
+      <div class="sheet">
+        <div class="liq-header">
+          <div>
+            <div class="title">Liquidación de Remuneraciones</div>
+            <div class="subtitle">Mes: <span id="pvMes"></span> · Folio: <span id="pvFolio"></span></div>
+          </div>
+          <div class="brand"><img id="pvLogo" src="assets/logo_asefortmec.png" alt="Logo"></div>
+        </div>
+
+        <div class="info">
+          <div class="infobox" id="trabajadorInfo"></div>
+          <div class="infobox" id="empresaInfo"></div>
+        </div>
+
+        <div class="metrics">
+          <div class="metric"><strong>Días pagados</strong><div id="mDias">30/30</div></div>
+          <div class="metric"><strong>Sueldo base proporcional</strong><div id="mSueldoProp">$0</div></div>
+          <div class="metric"><strong>Total imponible</strong><div id="mImponible">$0</div></div>
+          <div class="metric"><strong>Tributable</strong><div id="mTributable">$0</div></div>
+        </div>
+
+        <div class="twocol">
+          <table>
+            <thead><tr><th colspan="2">Haberes</th></tr></thead>
+            <tbody id="haberesBody"></tbody>
+          </table>
+          <table>
+            <thead><tr><th colspan="2">Descuentos</th></tr></thead>
+            <tbody id="descuentosBody"></tbody>
+          </table>
+        </div>
+
+        <div class="big-neto">ALCANCE LÍQUIDO: <span id="pvLiquido">$0</span></div>
+
+        <div class="footer">
+          <div class="note">
+            Certifico que he recibido a mi entera satisfacción la suma indicada en la presente liquidación,
+            sin cargo ni cobro posterior por los conceptos detallados.
+          </div>
+          <div class="signature">
+            <img id="firmaImg" src="assets/firma_digital.png" alt="Firma digital">
+            <div class="line"></div>
+            <div><b>Bernardo Ariel Ojeda Molina</b><br>Representante / Firma digital</div>
+          </div>
+          <div class="qrbox" id="qrBox"><img src="assets/qr_demo_sci.png" alt="QR"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="dashboardView" class="view">
+      <div class="kpis">
+        <div class="kpi"><b>Total haberes</b><span id="kpiHaberes">$0</span></div>
+        <div class="kpi"><b>Desc. legales</b><span id="kpiLegales">$0</span></div>
+        <div class="kpi"><b>Alcance líquido</b><span id="kpiLiquido">$0</span></div>
+        <div class="kpi"><b>Liquidaciones</b><span id="kpiCantidad">0</span></div>
+      </div>
+
+      <table>
+        <thead><tr><th>Empresa</th><th>Liquidaciones</th><th>Total haberes</th><th>Líquido</th><th>% líquido / haberes</th></tr></thead>
+        <tbody id="dashboardEmpresas"></tbody>
+      </table>
+
+      <br>
+
+      <table>
+        <thead><tr><th>Alerta</th><th>Valor</th><th>Semáforo</th></tr></thead>
+        <tbody id="alertasBody"></tbody>
+      </table>
+    </div>
+
+    <div id="historialView" class="view">
+      <div class="hist-actions no-print">
+        <div class="badge">Historial local (navegador)</div>
+        <button class="light" onclick="limpiarHistorial()">Limpiar historial</button>
+      </div>
+      <table>
+        <thead><tr><th>Folio</th><th>Empresa</th><th>Trabajador</th><th>Período</th><th>Días</th><th>Total haberes</th><th>Líquido</th><th>Estado</th></tr></thead>
+        <tbody id="historialBody"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script>
+const PARAMS = {
+  imm: 539000,
+  salud: 0.07,
+  afp: 0.10,
+  afcIndefinido: 0.006,
+  grat: 0.25,
+  gratTopeAnualImm: 4.75,
+  horasMesReferencia: 180,
+  qrBaseUrl: 'https://example.com/verificar'
+};
+
+const empresas = [
+  {codigo:'ASE', nombre:'ASEFORTMEC SPA', rut:'77.554.347-7', direccion:'Almarza 339, Oficina 4, Rancagua', logo:'assets/logo_asefortmec.png', firmaCargo:'Representante legal', correo:'bernardo.ojedam@gmail.com', qrDemo:'assets/qr_demo_ase.png'},
+  {codigo:'IMP', nombre:'IMPULSOWORK TRAINING', rut:'PENDIENTE', direccion:'Almarza 339, Oficina 4, Rancagua', logo:'assets/logo_impulsowork.jpg', firmaCargo:'Administración', correo:'minerotamayo1@gmail.com', qrDemo:'assets/qr_demo_ase.png'},
+  {codigo:'SCI', nombre:'SERVICIOS DE CERTIFICACION INTEGRAL SPA', rut:'78.344.926-9', direccion:'Almarza 339, Oficina 4, Rancagua', logo:'assets/logo_sci.png', firmaCargo:'Representante legal', correo:'bernardo.ojedam@gmail.com', qrDemo:'assets/qr_demo_sci.png'}
+];
+
+const trabajadores = [
+  {rut:'14.038.363-5', nombre:'Bernardo Ariel Ojeda Molina', cargo:'Jefe de Innovación y Formación', empresa:'ASEFORTMEC SPA', tipoContrato:'Indefinido', fechaIngreso:'2025-11-03', afp:'Capital', salud:'FONASA', email:'bernardo.ojedam@gmail.com', sueldoBase:900000},
+  {rut:'13.903.074-5', nombre:'Pablo Cristobal Tamayo Alvarez', cargo:'Gerencia y Administración', empresa:'IMPULSOWORK TRAINING', tipoContrato:'Indefinido', fechaIngreso:'2026-01-01', afp:'Habitat', salud:'FONASA', email:'minerotamayo1@gmail.com', sueldoBase:650000},
+  {rut:'20.661.656-3', nombre:'Dayanna Estefania Muñoz Paredes', cargo:'Recepcionista y Atención a Clientes', empresa:'SERVICIOS DE CERTIFICACION INTEGRAL SPA', tipoContrato:'Plazo fijo', fechaIngreso:'2026-04-17', afp:'UNO', salud:'FONASA', email:'mpeday22@gmail.com', sueldoBase:260000}
+];
+
+let ultimoRegistro = null;
+const $ = id => document.getElementById(id);
+const money = n => '$' + Number(n || 0).toLocaleString('es-CL');
+const n = id => Number($(id).value || 0);
+const getWorker = () => trabajadores.find(t => t.nombre === $('trabajador').value) || trabajadores[0];
+const getCompany = () => empresas.find(e => e.nombre === $('empresa').value) || empresas[0];
+const monthName = p => {
+  if(!p) return '';
+  const [y,m] = p.split('-').map(Number);
+  const d = new Date(y, m-1, 1);
+  return d.toLocaleDateString('es-CL', {month:'long', year:'numeric'});
+};
+const folioSeq = code => {
+  const hist = JSON.parse(localStorage.getItem('liq_historial_v6') || '[]');
+  const count = hist.filter(h => h.empresa.codigo === code).length + 1;
+  return `${code}-${String(count).padStart(6,'0')}`;
+};
+
+function daysPayForPeriod(fechaIngreso, periodo){
+  if(!fechaIngreso || !periodo) return 30;
+  const [y,m] = periodo.split('-').map(Number);
+  const ingreso = new Date(fechaIngreso + 'T00:00:00');
+  const periodEnd = new Date(y, m, 0);
+  if(ingreso > periodEnd) return 0;
+  if(ingreso.getFullYear() === y && (ingreso.getMonth()+1) === m) return 30 - ingreso.getDate() + 1;
+  return 30;
+}
+
+function currentDays(){
+  const auto = daysPayForPeriod($('fechaIngreso').value, $('periodo').value);
+  $('diasAuto').value = `${auto} / 30`;
+  const manual = $('diasManual').value.trim();
+  if(manual !== '') return Math.max(0, Math.min(30, Number(manual)));
+  return auto;
+}
+
+function syncWorker(){
+  const t = getWorker();
+  $('cargo').value = t.cargo;
+  $('tipoContrato').value = t.tipoContrato;
+  $('fechaIngreso').value = t.fechaIngreso;
+  $('sueldoBase').value = t.sueldoBase;
+  $('empresa').value = t.empresa;
+  currentDays();
+}
+
+function calcular(){
+  const trabajador = getWorker();
+  const empresa = getCompany();
+  const periodo = $('periodo').value;
+  const dias = currentDays();
+  const sueldoBaseContrato = n('sueldoBase');
+  const sueldoBaseProporcional = Math.round((sueldoBaseContrato / 30) * dias);
+
+  const valorHora = sueldoBaseContrato / PARAMS.horasMesReferencia;
+  const montoHE50 = Math.round(valorHora * 1.5 * n('he50'));
+  const montoHE100 = Math.round(valorHora * 2 * n('he100'));
+
+  const bonoImp = n('bonoImp');
+  const comisiones = n('comisiones');
+  const gratManual = n('gratManual');
+  const gratBase = sueldoBaseProporcional + bonoImp + comisiones + montoHE50 + montoHE100;
+  const topeGratMensual = (PARAMS.gratTopeAnualImm * PARAMS.imm) / 12;
+  const gratificacionAuto = Math.round(Math.min(gratManual > 0 ? gratManual : gratBase * PARAMS.grat, topeGratMensual));
+
+  const totalImponible = sueldoBaseProporcional + bonoImp + comisiones + montoHE50 + montoHE100 + gratificacionAuto;
+  const totalNoImponible = n('movilizacion') + n('colacion') + n('bonoNoImp');
+  const totalHaberes = totalImponible + totalNoImponible;
+
+  const afpPct = PARAMS.afp;
+  const saludPct = PARAMS.salud;
+  const afcPct = trabajador.tipoContrato.toLowerCase().includes('indefinido') ? PARAMS.afcIndefinido : 0;
+
+  const afp = Math.round(totalImponible * afpPct);
+  const salud = Math.round(totalImponible * saludPct);
+  const afc = Math.round(totalImponible * afcPct);
+  const impuesto = 0;
+  const descLegales = afp + salud + afc + impuesto;
+  const totalOtrosDesc = n('anticipos') + n('otrosDesc');
+  const liquido = totalHaberes - descLegales - totalOtrosDesc;
+  const folio = folioSeq(empresa.codigo);
+  const qrUrl = `${PARAMS.qrBaseUrl}?empresa=${encodeURIComponent(empresa.codigo)}&folio=${encodeURIComponent(folio)}`;
+
+  return {
+    folio, periodo, fechaPago: $('fechaPago').value, empresa, trabajador,
+    cargo: trabajador.cargo, tipoContrato: trabajador.tipoContrato, fechaIngreso: trabajador.fechaIngreso,
+    sueldoBaseContrato, sueldoBaseProporcional, dias, detalleDias:`${dias}/30`,
+    bonoImp, comisiones, he50:n('he50'), he100:n('he100'), montoHE50, montoHE100,
+    gratManual, gratificacionAuto, topeGratMensual,
+    movilizacion:n('movilizacion'), colacion:n('colacion'), bonoNoImp:n('bonoNoImp'),
+    anticipos:n('anticipos'), otrosDesc:n('otrosDesc'),
+    afpPct, saludPct, afcPct, afp, salud, afc, impuesto,
+    totalImponible, totalNoImponible, totalHaberes, descLegales, totalOtrosDesc, liquido,
+    qrUrl, qrDemo: empresa.qrDemo, obs: $('obs').value
+  };
+}
+
+function render(record){
+  ultimoRegistro = record;
+  $('pvMes').textContent = monthName(record.periodo);
+  $('pvFolio').textContent = record.folio;
+  $('pvLogo').src = record.empresa.logo;
+
+  $('trabajadorInfo').innerHTML =
+    `<b>Información trabajador</b><br><br>` +
+    `${record.trabajador.nombre.toUpperCase()}<br>` +
+    `Rut: ${record.trabajador.rut}<br>` +
+    `Fecha de ingreso: ${record.trabajador.fechaIngreso}<br>` +
+    `Tipo de contrato: ${record.trabajador.tipoContrato}<br>` +
+    `Cargo: ${record.trabajador.cargo}<br>` +
+    `AFP: ${record.trabajador.afp}<br>` +
+    `Salud: ${record.trabajador.salud}`;
+
+  $('empresaInfo').innerHTML =
+    `<b>Información empresa</b><br><br>` +
+    `Razón social: ${record.empresa.nombre}<br>` +
+    `Rut empresa: ${record.empresa.rut}<br>` +
+    `Dirección: ${record.empresa.direccion}<br>` +
+    `Fecha pago: ${record.fechaPago}<br>` +
+    `Validación QR: ${record.qrUrl}`;
+
+  $('mDias').textContent = record.detalleDias;
+  $('mSueldoProp').textContent = money(record.sueldoBaseProporcional);
+  $('mImponible').textContent = money(record.totalImponible);
+  $('mTributable').textContent = money(record.totalImponible);
+  $('pvLiquido').textContent = money(record.liquido);
+
+  const haberes = [
+    ['Sueldo base contractual', record.sueldoBaseContrato],
+    ['Sueldo base proporcional', record.sueldoBaseProporcional],
+    ['Gratificación mensual art. 50', record.gratificacionAuto],
+    ['Bono imponible', record.bonoImp],
+    ['Comisiones', record.comisiones],
+    ['Horas extra 50%', record.montoHE50],
+    ['Horas extra 100%', record.montoHE100],
+    ['Total imponible', record.totalImponible, true],
+    ['Movilización', record.movilizacion],
+    ['Colación', record.colacion],
+    ['Bono no imponible', record.bonoNoImp],
+    ['Total no imponible', record.totalNoImponible, true],
+    ['Total haberes', record.totalHaberes, true]
+  ];
+
+  const descuentos = [
+    [`AFP ${(record.afpPct*100).toFixed(1)}%`, record.afp],
+    [`Salud ${(record.saludPct*100).toFixed(1)}%`, record.salud],
+    [`AFC ${(record.afcPct*100).toFixed(1)}%`, record.afc],
+    ['Impuesto único', record.impuesto],
+    ['Total desc. legales', record.descLegales, true],
+    ['Anticipos', record.anticipos],
+    ['Otros descuentos', record.otrosDesc],
+    ['Total otros desc.', record.totalOtrosDesc, true]
+  ];
+
+  $('haberesBody').innerHTML = haberes.map(r => `<tr class="${r[2] ? 'total-row' : ''}"><td>${r[0]}</td><td class="right">${money(r[1])}</td></tr>`).join('');
+  $('descuentosBody').innerHTML = descuentos.map(r => `<tr class="${r[2] ? 'total-row' : ''}"><td>${r[0]}</td><td class="right">${money(r[1])}</td></tr>`).join('');
+
+  const qrImg = document.createElement('img');
+  qrImg.src = record.qrDemo || 'assets/qr_demo_sci.png';
+  qrImg.alt = 'QR';
+  $('qrBox').innerHTML = '';
+  $('qrBox').appendChild(qrImg);
+
+  actualizarDashboard();
+}
+
+function generarLiquidacion(){
+  render(calcular());
+}
+
+function guardarLocal(){
+  const data = ultimoRegistro || calcular();
+  const hist = JSON.parse(localStorage.getItem('liq_historial_v6') || '[]');
+  hist.unshift(data);
+  localStorage.setItem('liq_historial_v6', JSON.stringify(hist.slice(0,500)));
+  cargarHistorial();
+  actualizarDashboard();
+  alert('Liquidación guardada en historial local.');
+}
+
+function cargarHistorial(){
+  const hist = JSON.parse(localStorage.getItem('liq_historial_v6') || '[]');
+  $('historialBody').innerHTML = hist.length
+    ? hist.map(h => `<tr><td>${h.folio}</td><td>${h.empresa.nombre}</td><td>${h.trabajador.nombre}</td><td>${h.periodo}</td><td class="center">${h.detalleDias}</td><td class="right">${money(h.totalHaberes)}</td><td class="right">${money(h.liquido)}</td><td>${h.liquido >= 0 ? (h.obs && h.obs.toLowerCase().includes('borrador') ? 'Borrador' : 'Emitida') : 'Revisar'}</td></tr>`).join('')
+    : `<tr><td colspan="8" class="center">Sin registros aún.</td></tr>`;
+}
+
+function limpiarHistorial(){
+  if(confirm('¿Eliminar historial local?')){
+    localStorage.removeItem('liq_historial_v6');
+    cargarHistorial();
+    actualizarDashboard();
+  }
+}
+
+function actualizarDashboard(){
+  const hist = JSON.parse(localStorage.getItem('liq_historial_v6') || '[]');
+  const data = hist.length ? hist : (ultimoRegistro ? [ultimoRegistro] : []);
+  const totalHaberes = data.reduce((a,b)=>a+Number(b.totalHaberes||0),0);
+  const totalLegales = data.reduce((a,b)=>a+Number(b.descLegales||0),0);
+  const totalLiquido = data.reduce((a,b)=>a+Number(b.liquido||0),0);
+  $('kpiHaberes').textContent = money(totalHaberes);
+  $('kpiLegales').textContent = money(totalLegales);
+  $('kpiLiquido').textContent = money(totalLiquido);
+  $('kpiCantidad').textContent = data.length;
+
+  $('dashboardEmpresas').innerHTML = empresas.map(emp => {
+    const items = data.filter(x => x.empresa.nombre === emp.nombre);
+    const hab = items.reduce((a,b)=>a+Number(b.totalHaberes||0),0);
+    const liq = items.reduce((a,b)=>a+Number(b.liquido||0),0);
+    const pct = hab ? Math.round(liq/hab*100) : 0;
+    return `<tr>
+      <td>${emp.nombre}</td>
+      <td class="center">${items.length}</td>
+      <td class="right">${money(hab)}</td>
+      <td class="right">${money(liq)}</td>
+      <td><div class="bar"><span style="width:${pct}%"></span></div><div style="font-size:11px;margin-top:4px">${pct}%</div></td>
+    </tr>`;
+  }).join('');
+
+  const negativos = data.filter(x => x.liquido < 0).length;
+  const borradores = data.filter(x => (x.obs || '').toLowerCase().includes('borrador')).length;
+  const promedioDias = data.length ? Math.round(data.reduce((a,b)=>a+Number(b.dias||0),0)/data.length) : 0;
+  const alertas = [
+    ['Líquidos negativos', negativos, negativos ? 'CRITICO' : 'OK'],
+    ['Borradores pendientes', borradores, borradores ? 'REVISAR' : 'OK'],
+    ['Promedio días pagados', promedioDias, promedioDias < 30 ? 'REVISAR' : 'OK']
+  ];
+  $('alertasBody').innerHTML = alertas.map(a => `<tr><td>${a[0]}</td><td class="right">${a[1]}</td><td class="center ${a[2]==='OK'?'status-ok':a[2]==='CRITICO'?'status-critico':'status-alerta'}">${a[2]}</td></tr>`).join('');
+}
+
+function exportarJSON(){
+  const data = ultimoRegistro || calcular();
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${data.folio}.json`;
+  a.click();
+}
+
+function initTabs(){
+  document.querySelectorAll('.tabbtn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tabbtn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      btn.classList.add('active');
+      $(btn.dataset.view).classList.add('active');
+    });
+  });
+}
+
+function initSelectors(){
+  $('empresa').innerHTML = empresas.map(e => `<option>${e.nombre}</option>`).join('');
+  $('trabajador').innerHTML = trabajadores.map(t => `<option>${t.nombre}</option>`).join('');
+  $('trabajador').addEventListener('change', syncWorker);
+  $('empresa').addEventListener('change', () => generarLiquidacion());
+  ['periodo','fechaPago','sueldoBase','diasManual','bonoImp','comisiones','he50','he100','movilizacion','colacion','bonoNoImp','anticipos','otrosDesc','gratManual','obs'].forEach(id => {
+    $(id).addEventListener('input', () => { currentDays(); generarLiquidacion(); });
+    $(id).addEventListener('change', () => { currentDays(); generarLiquidacion(); });
+  });
+}
+
+function applyQueryDefaults(){
+  const params = new URLSearchParams(window.location.search);
+  const demo = params.get('demo');
+  const today = new Date();
+  const month = String(today.getMonth()+1).padStart(2,'0');
+  $('periodo').value = params.get('periodo') || `${today.getFullYear()}-${month}`;
+  $('fechaPago').value = params.get('fechaPago') || `${today.getFullYear()}-${month}-${String(new Date(today.getFullYear(), today.getMonth()+1, 0).getDate()).padStart(2,'0')}`;
+  if(demo === 'dayanna'){
+    $('trabajador').value = 'Dayanna Estefania Muñoz Paredes';
+    $('periodo').value = '2026-04';
+    $('fechaPago').value = '2026-04-30';
+    $('obs').value = 'Borrador demostrativo con sueldo proporcional por ingreso el 17 de abril.';
+  }
+}
+
+function init(){
+  initTabs();
+  initSelectors();
+  applyQueryDefaults();
+  syncWorker();
+  cargarHistorial();
+  generarLiquidacion();
+}
+init();
+</script>
+</body>
+</html>
